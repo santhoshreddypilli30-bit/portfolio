@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How Marquez Dissected Brno Lap by Lap — Santhosh Reddy Pilli</title>
+  <meta name="description" content="Fifth on the grid, a Turn 7 lowside in Friday practice, and a team-mate blocking his Sprint result. Then came 21 laps of surgical tyre management and one perfectly executed overtake at Turn 4." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --carbon:   #0E1016;
+      --asphalt:  #161921;
+      --pit:      #1E2130;
+      --cockpit:  #252A3A;
+      --mid:      #363D52;
+      --muted:    #6B7290;
+      --silver:   #A8AEBE;
+      --titanium: #CDD1E0;
+      --white:    #EEF0F8;
+      --red:      #E8001D;
+      --red-dim:  #9E0013;
+      --red-bg:   rgba(232,0,29,.08);
+      --mono:     'JetBrains Mono', monospace;
+      --display:  'Rajdhani', sans-serif;
+      --body:     'Inter', sans-serif;
+      --serif:    'Playfair Display', Georgia, serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--carbon); color: var(--white); font-family: var(--body); line-height: 1.7; }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .85rem 5vw;
+      background: rgba(14,16,22,.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(232,0,29,.15);
+    }
+    .nav-logo { font-family: var(--display); font-weight: 700; font-size: 1.2rem; letter-spacing: .1em; }
+    .nav-logo span { color: var(--red); }
+    .nav-back {
+      font-size: .75rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--silver); display: flex; align-items: center; gap: .4rem;
+      transition: color .2s;
+    }
+    .nav-back:hover { color: var(--red); }
+
+    /* HERO */
+    .article-hero {
+      padding: 8rem 5vw 4rem;
+      background: linear-gradient(160deg, #0E1016 0%, #131828 50%, #0E1016 100%);
+      border-bottom: 1px solid var(--pit);
+      position: relative; overflow: hidden;
+    }
+    .article-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,.008) 0px, rgba(255,255,255,.008) 1px,
+        transparent 1px, transparent 8px
+      );
+    }
+    .article-meta {
+      font-family: var(--mono); font-size: .68rem; letter-spacing: .2em;
+      color: var(--red); text-transform: uppercase; margin-bottom: 1rem;
+      display: flex; align-items: center; gap: .8rem;
+    }
+    .article-meta::before { content: ''; display: block; width: 24px; height: 1px; background: var(--red); }
+    .article-title {
+      font-family: var(--serif); font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 500; line-height: 1.2; margin-bottom: 1rem;
+      max-width: 760px; position: relative;
+    }
+    .article-subtitle {
+      font-size: 1.05rem; color: var(--silver); line-height: 1.7;
+      max-width: 600px; margin-bottom: 2rem; position: relative;
+    }
+    .article-byline {
+      display: flex; align-items: center; gap: 1rem;
+      font-size: .82rem; color: var(--muted); position: relative;
+    }
+    .byline-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--red); display: flex; align-items: center; justify-content: center;
+      font-family: var(--display); font-weight: 700; font-size: .85rem; color: var(--white);
+      flex-shrink: 0;
+    }
+    .byline-name { color: var(--titanium); font-weight: 500; }
+
+    /* KEY STATS BAR */
+    .stats-bar {
+      display: flex; gap: 0; overflow-x: auto; scrollbar-width: none;
+      border-bottom: 1px solid var(--pit); background: var(--asphalt);
+    }
+    .stats-bar::-webkit-scrollbar { display: none; }
+    .stat-item {
+      flex-shrink: 0; padding: 1.2rem 2rem;
+      border-right: 1px solid var(--pit); text-align: center;
+    }
+    .stat-val {
+      font-family: var(--display); font-size: 1.8rem; font-weight: 700;
+      color: var(--white); line-height: 1;
+    }
+    .stat-val.red { color: var(--red); }
+    .stat-lbl {
+      font-family: var(--mono); font-size: .62rem; letter-spacing: .15em;
+      color: var(--muted); text-transform: uppercase; margin-top: .3rem;
+    }
+
+    /* ARTICLE LAYOUT */
+    .article-container {
+      max-width: 1100px; margin: 0 auto; padding: 3rem 5vw;
+      display: grid; grid-template-columns: 1fr 320px; gap: 4rem; align-items: start;
+    }
+    .article-main { min-width: 0; }
+    .article-sidebar { position: sticky; top: 5rem; }
+
+    /* TAB NAV */
+    .tab-nav {
+      display: flex; gap: 0; border-bottom: 1px solid var(--mid);
+      margin-bottom: 2.5rem; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      font-family: var(--mono); font-size: .68rem; letter-spacing: .15em;
+      text-transform: uppercase; padding: .75rem 1.2rem; cursor: pointer;
+      color: var(--muted); border-bottom: 2px solid transparent;
+      margin-bottom: -1px; background: none; border-top: none;
+      border-left: none; border-right: none; white-space: nowrap;
+      transition: color .2s;
+    }
+    .tab-btn.active { color: var(--white); border-bottom-color: var(--red); }
+    .tab-btn:hover:not(.active) { color: var(--silver); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* STORY CONTENT */
+    .story p { font-size: 1rem; line-height: 1.85; color: var(--titanium); margin-bottom: 1.4rem; }
+    .story h3 {
+      font-family: var(--display); font-size: 1.3rem; font-weight: 600;
+      letter-spacing: .06em; margin: 2.5rem 0 .8rem;
+      color: var(--white);
+    }
+    .pull-quote {
+      border-left: 3px solid var(--red);
+      padding: 1rem 1.5rem;
+      margin: 2rem 0;
+      background: var(--pit);
+      border-radius: 0 4px 4px 0;
+    }
+    .pull-quote p {
+      font-family: var(--serif); font-size: 1.1rem; font-style: italic;
+      color: var(--white); line-height: 1.7; margin: 0 0 .5rem;
+    }
+    .pull-quote cite {
+      font-family: var(--mono); font-size: .65rem; letter-spacing: .15em;
+      color: var(--red); text-transform: uppercase;
+    }
+    .tag-chip {
+      display: inline-block; font-family: var(--mono); font-size: .65rem;
+      letter-spacing: .12em; text-transform: uppercase;
+      padding: .25rem .8rem; border: 1px solid var(--red-dim);
+      background: var(--red-bg); color: var(--red); border-radius: 2px;
+      margin-bottom: 1.5rem;
+    }
+
+    /* TELEMETRY PANEL */
+    .telemetry-panel {
+      background: var(--asphalt); border: 1px solid var(--mid);
+      border-radius: 4px; padding: 1.5rem; margin: 2rem 0;
+    }
+    .telemetry-label {
+      font-family: var(--mono); font-size: .62rem; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--red); margin-bottom: 1rem;
+    }
+    .telem-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;
+    }
+    .telem-item { border-left: 2px solid var(--mid); padding-left: .8rem; }
+    .telem-item.highlight { border-left-color: var(--red); }
+    .telem-val {
+      font-family: var(--display); font-size: 1.4rem; font-weight: 700;
+      color: var(--white); line-height: 1;
+    }
+    .telem-val.red { color: var(--red); }
+    .telem-key {
+      font-family: var(--mono); font-size: .6rem; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted); margin-top: .2rem;
+    }
+
+    /* LAP CHART */
+    .lap-chart { margin: 2rem 0; }
+    .lap-chart-title {
+      font-family: var(--mono); font-size: .62rem; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--red); margin-bottom: .8rem;
+    }
+    .lap-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .4rem 0; border-bottom: 1px solid var(--pit);
+      font-size: .82rem;
+    }
+    .lap-num {
+      font-family: var(--mono); font-size: .65rem; color: var(--muted);
+      width: 40px; flex-shrink: 0;
+    }
+    .lap-bar-wrap { flex: 1; height: 6px; background: var(--pit); border-radius: 3px; overflow: hidden; }
+    .lap-bar { height: 100%; border-radius: 3px; background: var(--mid); transition: width .3s; }
+    .lap-bar.fast { background: var(--red); }
+    .lap-bar.key { background: #BA7517; }
+    .lap-time { font-family: var(--mono); font-size: .72rem; color: var(--titanium); width: 72px; text-align: right; flex-shrink: 0; }
+    .lap-note { font-size: .7rem; color: var(--muted); width: 140px; flex-shrink: 0; }
+
+    /* TIMELINE */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: ''; position: absolute; left: .4rem; top: .5rem; bottom: 0;
+      width: 1px; background: linear-gradient(to bottom, var(--red), var(--mid));
+    }
+    .tl-item { position: relative; margin-bottom: 2rem; }
+    .tl-dot {
+      position: absolute; left: -1.65rem; top: .3rem;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--pit); border: 1.5px solid var(--mid);
+    }
+    .tl-dot.red { background: var(--red); border-color: var(--red); box-shadow: 0 0 0 3px rgba(232,0,29,.15); }
+    .tl-dot.gold { background: #BA7517; border-color: #BA7517; box-shadow: 0 0 0 3px rgba(186,117,23,.15); }
+    .tl-hour {
+      font-family: var(--mono); font-size: .65rem; letter-spacing: .15em;
+      color: var(--red); text-transform: uppercase; margin-bottom: .3rem;
+    }
+    .tl-title { font-family: var(--display); font-size: 1.05rem; font-weight: 600; letter-spacing: .04em; margin-bottom: .3rem; }
+    .tl-desc { font-size: .88rem; color: var(--silver); line-height: 1.7; }
+
+    /* PODIUM */
+    .podium-wrap { display: flex; align-items: flex-end; justify-content: center; gap: 1rem; margin: 2rem 0; }
+    .podium-col { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 200px; }
+    .podium-card {
+      background: var(--pit); border: 1px solid var(--mid);
+      border-radius: 4px; padding: 1.2rem 1rem; width: 100%;
+      text-align: center; margin-bottom: .5rem;
+    }
+    .podium-card.winner { border-color: #BA7517; }
+    .podium-pos { font-size: 1.8rem; margin-bottom: .4rem; }
+    .podium-num { font-family: var(--mono); font-size: .65rem; color: var(--muted); margin-bottom: .3rem; }
+    .podium-team { font-family: var(--display); font-size: 1rem; font-weight: 600; letter-spacing: .04em; margin-bottom: .2rem; }
+    .podium-team.red { color: var(--red); }
+    .podium-gap { font-family: var(--mono); font-size: .72rem; color: var(--muted); margin-bottom: .8rem; }
+    .driver-chips { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; }
+    .d-chip {
+      font-size: .68rem; padding: .2rem .6rem;
+      background: var(--cockpit); border-radius: 2px; color: var(--silver);
+      border: 1px solid var(--mid);
+    }
+    .podium-step { width: 100%; border-radius: 3px 3px 0 0; }
+    .step-1 { background: #BA7517; height: 70px; }
+    .step-2 { background: var(--cockpit); border: 1px solid var(--mid); height: 50px; }
+    .step-3 { background: var(--cockpit); border: 1px solid var(--mid); height: 36px; }
+
+    .results-table { width: 100%; border-collapse: collapse; font-size: .88rem; margin-bottom: 1.5rem; }
+    .results-table th {
+      font-family: var(--mono); font-size: .62rem; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--muted); text-align: left;
+      padding: .5rem .75rem; border-bottom: 1px solid var(--mid);
+    }
+    .results-table td { padding: .6rem .75rem; border-bottom: 1px solid var(--pit); color: var(--titanium); }
+    .results-table tr:hover td { background: var(--pit); }
+    .pos-badge {
+      font-family: var(--mono); font-size: .72rem; font-weight: 500;
+      color: var(--muted);
+    }
+
+    /* RIDER CARDS */
+    .rider-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .rider-card {
+      background: var(--pit); border: 1px solid var(--mid);
+      border-radius: 4px; padding: 1.2rem;
+    }
+    .rider-num {
+      font-family: var(--display); font-size: 2rem; font-weight: 700;
+      color: var(--red); line-height: 1; margin-bottom: .4rem;
+    }
+    .rider-role {
+      font-family: var(--mono); font-size: .6rem; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: .6rem;
+    }
+    .rider-name { font-size: 1rem; font-weight: 500; margin-bottom: .15rem; }
+    .rider-nat { font-size: .82rem; color: var(--muted); margin-bottom: .6rem; }
+    .rider-badge {
+      display: inline-block; font-family: var(--mono); font-size: .6rem;
+      letter-spacing: .1em; text-transform: uppercase;
+      padding: .2rem .6rem; border-radius: 2px;
+    }
+    .badge-gold { background: rgba(186,117,23,.15); color: #EF9F27; border: 1px solid rgba(186,117,23,.3); }
+    .badge-blue { background: rgba(24,95,165,.15); color: #85B7EB; border: 1px solid rgba(24,95,165,.3); }
+    .badge-green { background: rgba(0,160,80,.12); color: #4BCB8A; border: 1px solid rgba(0,160,80,.3); }
+
+    /* SIDEBAR */
+    .sidebar-card {
+      background: var(--pit); border: 1px solid var(--mid);
+      border-radius: 4px; padding: 1.2rem; margin-bottom: 1rem;
+    }
+    .sidebar-title {
+      font-family: var(--mono); font-size: .65rem; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--red); margin-bottom: 1rem;
+    }
+    .sidebar-stat { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid var(--cockpit); font-size: .85rem; }
+    .sidebar-stat:last-child { border-bottom: none; }
+    .sidebar-stat-lbl { color: var(--muted); }
+    .sidebar-stat-val { color: var(--white); font-weight: 500; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-family: var(--mono); font-size: .68rem; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--muted);
+      padding: .6rem 1rem; border: 1px solid var(--mid);
+      border-radius: 2px; transition: all .2s; margin-top: 1rem; width: 100%;
+      justify-content: center;
+    }
+    .back-link:hover { color: var(--white); border-color: var(--red); }
+
+    /* FOOTER */
+    .article-footer {
+      border-top: 1px solid var(--pit); padding: 2rem 5vw;
+      text-align: center; font-size: .78rem; color: var(--muted);
+    }
+    .article-footer span { color: var(--red); }
+
+    @media (max-width: 768px) {
+      .article-container { grid-template-columns: 1fr; gap: 2rem; }
+      .article-sidebar { position: static; }
+      .stats-bar { justify-content: flex-start; }
+      .rider-grid { grid-template-columns: 1fr 1fr; }
+      .podium-wrap { gap: .5rem; }
+      .telem-grid { grid-template-columns: 1fr 1fr; }
+      .lap-note { display: none; }
+    }
+    @media (max-width: 480px) {
+      .rider-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">SRP<span>.</span></div>
+  <a href="index.html" class="nav-back">← Back to portfolio</a>
+</nav>
+
+<!-- HERO -->
+<div class="article-hero">
+  <div class="article-meta">Race analysis · Czech GP 2026 · Brno</div>
+  <h1 class="article-title">How Marquez Dissected Brno — Tyre, Timing, and a Single Turn</h1>
+  <p class="article-subtitle">Fifth on the grid after two Friday crashes. Held back through the first half of the race. Then one decisive move at Turn 4 on lap 16, and 21 laps of controlled tyre degradation did the rest.</p>
+  <div class="article-byline">
+    <div class="byline-avatar">SRP</div>
+    <div>
+      <div class="byline-name">Santhosh Reddy Pilli</div>
+      <div>Race analysis · Published 22 June 2026 · Round 9 · 2026 MotoGP World Championship</div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-val red">21</div><div class="stat-lbl">Race laps</div></div>
+  <div class="stat-item"><div class="stat-val">0.421s</div><div class="stat-lbl">Winning margin</div></div>
+  <div class="stat-item"><div class="stat-val red">1'53.122</div><div class="stat-lbl">Race lap record</div></div>
+  <div class="stat-item"><div class="stat-val">Lap 16</div><div class="stat-lbl">Decisive overtake</div></div>
+  <div class="stat-item"><div class="stat-val red">5th</div><div class="stat-lbl">Grid position</div></div>
+  <div class="stat-item"><div class="stat-val">−62</div><div class="stat-lbl">Points clawed back</div></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="article-container">
+  <main class="article-main">
+
+    <!-- TABS -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="showTab('story',this)">Engineering analysis</button>
+      <button class="tab-btn" onclick="showTab('lap',this)">Lap-by-lap</button>
+      <button class="tab-btn" onclick="showTab('podium',this)">Podium &amp; results</button>
+      <button class="tab-btn" onclick="showTab('riders',this)">Riders</button>
+    </div>
+
+    <!-- THE STORY -->
+    <div id="story" class="tab-panel active story">
+      <span class="tag-chip">Engineering Feature</span>
+
+      <h3>A weekend that started on the wrong side of the data</h3>
+      <p>By Friday afternoon at CREDITAS Autodrom Brno, Marc Marquez had already visited the gravel trap twice. Two lowsides — the second at Turn 7, where the GP26's rear stepped out mid-corner — left the reigning champion 13th on the combined timesheet heading into the final minutes of practice. For any other rider at any other point in his career, the narrative would be one of concern. For the engineering team behind the Ducati Lenovo machine, it told a different story: the data from both incidents was immediately actionable.</p>
+      <p>Brno is a 5.403 km circuit with 14 corners, significant elevation change, and a blend of medium-speed sweepers and hard-braking zones that place considerable energy into the rear Michelin across the lap. Track surface temperature on Saturday and Sunday sat close to 60°C — a figure that compresses the operating window of the medium compound tyre and makes rubber management the primary variable separating podium finishes from points finishes. The choice to run medium front and medium rear was universal among the front runners, with only Joan Mir deviating on the soft rear.</p>
+
+      <div class="telemetry-panel">
+        <div class="telemetry-label">Session telemetry overview · Brno 2026</div>
+        <div class="telem-grid">
+          <div class="telem-item highlight">
+            <div class="telem-val red">1'51.139</div>
+            <div class="telem-key">Qualifying pole · Ogura (Aprilia)</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">1'53.122</div>
+            <div class="telem-key">Race lap record · Di Giannantonio (Lap 21)</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">1'53.3</div>
+            <div class="telem-key">FP1 best · Marquez (medium rear)</div>
+          </div>
+          <div class="telem-item highlight">
+            <div class="telem-val red">60°C</div>
+            <div class="telem-key">Track surface temp · race day</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">21</div>
+            <div class="telem-key">Race laps</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">5.403 km</div>
+            <div class="telem-key">Circuit length · 14 corners</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>The qualifying deficit and what it told the engineers</h3>
+      <p>Ai Ogura's pole lap of 1'51.139 on the Trackhouse Aprilia RS-GP represented a new outright Brno lap record, clearing the field by 0.2 seconds. Marquez qualified fifth after exceeding track limits on his first Q2 run, which denied the team a reference point for comparing trim configurations between runs. The grid order — Ogura, Di Giannantonio, Bagnaia on row one, Bezzecchi and Marquez on row two — set up a race where the Ducati Lenovo camp had to read the tyres of rivals ahead rather than dictate strategy from the front.</p>
+      <p>The engineering calculus was straightforward in concept: at Brno on medium compound in these temperatures, the rear tyre's contact patch temperature typically peaks between laps 6 and 10, before entering a degradation curve that can vary by up to 0.3 seconds per lap depending on riding style. Bagnaia's strength at Brno is historically entry-phase braking, which generates high rear thermal load early. Marquez's characteristic style — high corner speed, later apex, aggressive drive phase — tends to defer that thermal peak. The team's pre-race model therefore anticipated that Bagnaia would build an early lead but fade, while Marquez's tyre would remain competitive into the closing laps.</p>
+
+      <div class="pull-quote">
+        <p>"I'm extremely happy with this win. It was somehow an unexpected one, as I was sure that I would struggle towards the end. It did happen, actually, but the others were not quicker than me."</p>
+        <cite>— Marc Marquez, Ducati Lenovo Team</cite>
+      </div>
+
+      <h3>Lap 1 to 10: position management, not attack</h3>
+      <p>Ogura led into Turn 1, but Bagnaia re-passed his Ducati team-mate at Turn 6, and Marquez immediately slotted in behind to run second from lap 2. What followed over the first ten laps was a clinical exercise in data collection. Marquez was not trying to pass Bagnaia; he was reading the Italian's braking points, corner exit wheelspin moments, and the pace at which the gap to Ogura ahead was changing. By lap 10, Marquez had reduced Bagnaia's half-second margin to essentially zero — not by increasing his own pace, but by allowing the race to neutralise the tyre advantage Bagnaia had built through the earlier, more aggressive phase.</p>
+      <p>The GP26 platform deserves engineering context here. Ducati's 2026 machine was developed explicitly to address the vibration and stability problems that had plagued Bagnaia throughout the second half of 2025. Technical director David Barana confirmed at the season launch that the team worked on both chassis behaviour and the aerodynamic intake architecture to improve straight-line acceleration — the metric that determines whether a braking-zone overtake is available at Turn 4 or Turn 10. At Brno, that improved traction out of the slower corners, particularly the Turn 11–13 complex, was directly relevant to Marquez's ability to carry momentum into the back straight.</p>
+
+      <h3>The midpoint inflection: laps 10 to 16</h3>
+      <p>Bagnaia responded to Marquez's closing pressure with a counter-push between laps 11 and 13, briefly re-establishing a gap of around half a second. This is the phase most analytical tools would flag as critical. On the timing screens, it appeared that Bagnaia had the measure of his team-mate. In tyre performance terms, it was the opposite: the mid-race push burned the rear carcass at a higher rate, accelerating the Italian's degradation curve. Marquez, by contrast, maintained his approach of carrying apex speed rather than maximising acceleration at corner exit — a technique that preserves rear Michelin integrity while yielding slightly lower peak mid-corner speeds, but significantly better stability through the 58th to 21st lap window.</p>
+      <p>Ogura re-entered the picture around lap 14, having managed his Aprilia's energy delivery to maintain consistent lap times without the visible aggressive-phase-then-fade pattern of the two Ducatis. By lap 14, Marquez was back on Bagnaia's rear tyre shadow, Ogura was within striking distance, and the three-way contest was set up. The engineering interest at this point shifts to Turn 4 — a left-hand, downhill entry braking zone that represents the circuit's prime overtaking point and the location of the race's defining moment.</p>
+
+      <div class="telemetry-panel">
+        <div class="telemetry-label">Turn 4 overtake · Lap 16 engineering breakdown</div>
+        <div class="telem-grid">
+          <div class="telem-item highlight">
+            <div class="telem-val red">T4</div>
+            <div class="telem-key">Downhill left-hander · primary braking zone</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">Lap 16</div>
+            <div class="telem-key">Of 21 total — inside the tyre degradation window</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">Outside</div>
+            <div class="telem-key">Marquez's approach line into the hairpin</div>
+          </div>
+          <div class="telem-item highlight">
+            <div class="telem-val red">Late</div>
+            <div class="telem-key">Braking point relative to Bagnaia</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">Inner apex</div>
+            <div class="telem-key">Used to deny re-pass on corner exit</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">+0.5s</div>
+            <div class="telem-key">Gap built within 2 laps post-pass</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>The Turn 4 move: anatomy of a precision overtake</h3>
+      <p>On lap 16, Marquez executed the pass that ended the race as a competitive contest. He moved to the outside of Bagnaia approaching Turn 4's downhill braking zone, committing later than the Italian, and drove the front end of the GP26 into the apex to claim track position. The mechanics of the move combined two elements of Marquez's known strengths on the Ducati: the GP26's improved front-end feedback — a direct result of the stability work cited by Barana — and Marquez's capacity to trail-brake deep into a hairpin while maintaining directional control. Bagnaia, whose rear tyre had completed five additional high-intensity laps in the counter-push phase, did not have the grip margin to defend.</p>
+      <p>What followed is where the engineering story becomes particularly instructive. Marquez did not immediately attack the fastest possible lap time once in clean air. He built a gap at a controlled rate: approximately 0.5 seconds within two laps, enough to prevent Bagnaia from executing a DRS-style slipstream overtake on the main straight, but not so aggressive a pace that he would over-stress his own remaining tyre carcass. This is disciplined energy management — a race engineer's directive translated into rider input, lap after lap, in conditions where the temptation to simply push is constant.</p>
+
+      <h3>Ogura's closing pace and what it reveals about the Aprilia</h3>
+      <p>The final three laps introduced an engineering subplot that will inform the championship fight for rounds ahead. As Bagnaia faded and Ogura passed him at Turn 10 on lap 17, the Trackhouse Aprilia began generating its strongest pace of the race. From 0.688 seconds behind Marquez on lap 19, Ogura closed to 0.421 by the flag — a closing rate of approximately 0.135 seconds per lap. Ogura's RS-GP characteristically delivers its best performance in the race's final third, which is an engineering signature of the Aprilia's fuel load sensitivity and its rear ride height device deployment pattern. When tanks are lightest and mechanical grip is at its highest relative to aerodynamic download, the RS-GP's torque delivery becomes more manageable and lap times improve.</p>
+      <p>The gap of 0.421 seconds at the chequered flag represents a final-lap scenario in which Ogura was genuinely faster but the margin of the circuit — 5.403 km of it — was simply not enough to complete a pass. Di Giannantonio, who set the fastest lap of the race (1'53.122) on the final lap on a set of tyres that had been conserved through the mid-race period, demonstrated that there was latent pace available across the field. His arrival in fourth, 0.169 seconds behind Bagnaia, confirms that the top four were separated by engineering choices and timing rather than fundamental performance gaps.</p>
+
+      <div class="pull-quote">
+        <p>"We found another weak point. I was not able to make the most of the change of direction between turns 6 and 7, which is normally one of my strong points, but where I was losing time."</p>
+        <cite>— Marc Marquez, post-race engineering debrief reflection</cite>
+      </div>
+
+      <h3>GP26 chassis: what Brno confirmed and what it flagged</h3>
+      <p>Marquez's own post-race comments carry direct engineering weight. His specific reference to the Turn 6–7 change of direction — describing it as normally a strong point where he was instead losing time — is a precise mechanical observation. Brno's Turn 6–7 complex requires a rapid direction change under combined lateral and longitudinal load, demanding exceptional damper response and chassis rigidity. The fact that Marquez flagged this sector explicitly, while still winning, indicates that the GP26's known stability improvement addresses high-speed corners and braking zones more effectively than it does the rapid-direction-change scenario. This is data the Ducati engineering team will be working on ahead of Assen, which has a similar multi-direction section in the Chicane complex.</p>
+      <p>The broader GP26 development context matters here. Engine regulations are frozen for 2026 — no homologation changes permitted — meaning that the performance gains available are limited to aerodynamics, chassis components, and electronics mapping. Ducati's collaboration with Lenovo's computational infrastructure, used to redesign intake components and model aero interactions, has yielded measurable improvements in straight-line acceleration. Marquez's FP1 best of 1'53.3 set on unchanged soft rubber — the fastest time before anyone began preparing for qualifying — was a clear signal that the GP26 carries significant race pace even under tyre management constraints.</p>
+
+      <h3>Championship trajectory: the engineering story beyond the podium</h3>
+      <p>The Czech GP result carries a significance that extends well beyond 25 points. When Marquez arrived at Brno, he trailed championship leader Marco Bezzecchi by 65 points. Bezzecchi's suspension from Sunday's race — issued by FIM stewards after the Aprilia rider struck a marshal following his Sprint crash — left him on 180 points without adding to his total. Marquez's win reduced the deficit to 40 points with 13 rounds remaining; 37 points are available across each race weekend (25 for Sunday, 12 for Sprint). The arithmetic now places the title firmly within reach. More importantly from an engineering perspective, Marquez has now won back-to-back at circuits with very different technical profiles — Balaton Park, which favours left-hand corner strength, and Brno, which demands tyre management and braking zone precision — indicating that the GP26 setup philosophy is sufficiently flexible to be competitive across multiple circuit types without requiring radical configuration changes.</p>
+      <p>The test session announced for the following Monday at Brno — the first 850cc Pirelli evaluation for the 2027 regulations — adds another layer to the weekend's engineering narrative. With Marquez among those confirmed for the closed-door session, the reigning champion will transition directly from defending his race win to gathering data for a machine that represents a fundamental regulatory reset. How the team balances those two engineering programmes — 2026 title defence and 2027 platform development — over the summer months will be one of the most technically interesting management challenges in the paddock.</p>
+
+      <div class="pull-quote">
+        <p>"We have been worried since race one about Marc Marquez's championship threat. The gap has gone from 100 to 40 in two races."</p>
+        <cite>— Aprilia Racing, post-race statement</cite>
+      </div>
+    </div>
+
+    <!-- LAP-BY-LAP -->
+    <div id="lap" class="tab-panel">
+
+      <div class="timeline">
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-hour">Pre-race · 19–20 June 2026</div>
+          <div class="tl-title">Two crashes, one data-rich Friday</div>
+          <div class="tl-desc">Marquez crashes at Turn 7 twice during Friday practice, sliding to 13th on the combined sheet. Best time of 1'53.3 set on unchanged tyre — the fastest clean-air time in the session. Engineers acquire two impact datasets and identify rear corner instability under combined lateral-longitudinal load.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-hour">Qualifying · Saturday</div>
+          <div class="tl-title">Track limits cost the run — P5 salvaged</div>
+          <div class="tl-desc">Marquez's first Q2 run is cancelled for exceeding track limits. A single push on a soft rear recovers P5. Ogura sets the Brno all-time lap record at 1'51.139 to take pole. Bagnaia and Di Giannantonio complete row one. Championship leader Bezzecchi starts P4.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-hour">Sprint · Saturday</div>
+          <div class="tl-title">Third place taken: soft tyre strategy validates data</div>
+          <div class="tl-desc">Marquez is one of only three top-ten riders starting on the soft rear (alongside Bagnaia and rookie Moreira). Bagnaia wins the Sprint, Ogura second, Marquez third. Bezzecchi crashes out at Turn 3, strikes a marshal while recovering his bike, and is subsequently suspended from Sunday's race.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot gold"></div>
+          <div class="tl-hour">Race lap 1</div>
+          <div class="tl-title">Ogura leads — Bagnaia takes Turn 6, Marquez slots second</div>
+          <div class="tl-desc">Ogura gets a clean launch from pole into Turn 1. Bagnaia re-passes his Ducati team-mate at Turn 6. Marquez slots immediately into second. Quartararo crashes on opening lap; Jorge Martin, serving a double long-lap penalty, is already losing position from row four.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-hour">Laps 2–9</div>
+          <div class="tl-title">Position management: Marquez reads the tyre data</div>
+          <div class="tl-desc">Marquez runs 0.3–0.5 seconds behind Bagnaia without attacking. Ogura, who led briefly, falls 2–3 seconds back as the two Ducatis establish a breakaway. Marquez's riding style — carrying apex speed, moderate corner-exit acceleration — generates lower rear tyre surface temperature than Bagnaia's harder braking entry approach.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot red"></div>
+          <div class="tl-hour">Lap 10</div>
+          <div class="tl-title">The gap closes: thermal peak has passed</div>
+          <div class="tl-desc">Marquez wipes out Bagnaia's advantage entirely. The Italian's more aggressive early phase has exhausted the tyre's peak thermal energy. The gap reaches zero. Bagnaia responds with a counter-push, extending back to 0.5 seconds by the halfway mark — a move that will cost him later.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-hour">Laps 11–13</div>
+          <div class="tl-title">Bagnaia's counter-push: rapid but costly</div>
+          <div class="tl-desc">Bagnaia briefly re-establishes a 0.5-second gap in what appears to be a comfortable lead. In tyre management terms, the mid-race push accelerates rear carcass degradation. Marquez maintains pace without matching the Italian's energy input. Ogura, meanwhile, has found rhythm and begins closing the gap to both Ducatis.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot red"></div>
+          <div class="tl-hour">Lap 14</div>
+          <div class="tl-title">Three-way fight: the race resets</div>
+          <div class="tl-desc">Marquez returns to Bagnaia's wheel. Ogura re-enters contention from behind. The lead three are now covered by under two seconds. Track temperature is at its highest point of the afternoon. Bagnaia is defending on degrading rubber. The engineering outcome from this point is close to inevitable.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot gold"></div>
+          <div class="tl-hour">Lap 16</div>
+          <div class="tl-title">Turn 4: the decisive overtake</div>
+          <div class="tl-desc">Marquez moves to the outside of Bagnaia approaching Turn 4's downhill left-hand hairpin. He commits to a late braking point, drives the GP26's front end to the apex, and takes the lead. The move is executed without contact and without drama — a product of the tyre calculation that had been running for the previous 14 laps. Marquez immediately begins pulling away.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-hour">Lap 17</div>
+          <div class="tl-title">Ogura passes Bagnaia; Marquez controls the gap</div>
+          <div class="tl-desc">Ogura makes his move on Bagnaia at Turn 10, completing the podium reshuffle. Marquez, now in clean air, manages his pace at a level sufficient to prevent a slipstream attempt on the main straight — not the maximum the GP26 can produce, but the engineering-optimal output for the situation.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot red"></div>
+          <div class="tl-hour">Laps 18–20</div>
+          <div class="tl-title">Ogura's late charge: closing at 0.135s per lap</div>
+          <div class="tl-desc">The Trackhouse Aprilia enters its strongest phase as fuel load reduces and the RS-GP's rear traction stabilises. Ogura closes from 0.688 seconds on lap 19 to 0.421 at the flag, generating the race's fastest closing rate. The circuit length — 5.403 km — does not provide enough remaining track for a genuine pass attempt.</div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot gold"></div>
+          <div class="tl-hour">Lap 21 · Flag</div>
+          <div class="tl-title">Marquez wins; Di Giannantonio sets fastest lap</div>
+          <div class="tl-desc">Marquez takes the chequered flag 0.421 seconds ahead of Ogura. Bagnaia holds third. Di Giannantonio's final lap of 1'53.122 — a new race lap record — confirms the GP26's pace reserve. Pedro Acosta retires from fifth on the final lap with a suspected tyre pressure issue. Bezzecchi remains on 180 points. Marquez closes to within 40.</div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- PODIUM -->
+    <div id="podium" class="tab-panel">
+
+      <div class="podium-wrap">
+        <div class="podium-col">
+          <div class="podium-card">
+            <div class="podium-pos">🥈</div>
+            <div class="podium-num">#79 Trackhouse Aprilia RS-GP</div>
+            <div class="podium-team">Trackhouse Racing</div>
+            <div class="podium-gap">+0.421s</div>
+            <div class="driver-chips">
+              <span class="d-chip">Ai Ogura</span>
+            </div>
+          </div>
+          <div class="podium-step step-2"></div>
+        </div>
+
+        <div class="podium-col">
+          <div class="podium-card winner">
+            <div class="podium-pos">🥇</div>
+            <div class="podium-num">#93 Ducati GP26</div>
+            <div class="podium-team red">Ducati Lenovo Team</div>
+            <div class="podium-gap">21 laps · winner</div>
+            <div class="driver-chips">
+              <span class="d-chip">Marc Marquez</span>
+            </div>
+          </div>
+          <div class="podium-step step-1"></div>
+        </div>
+
+        <div class="podium-col">
+          <div class="podium-card">
+            <div class="podium-pos">🥉</div>
+            <div class="podium-num">#1 Ducati GP26</div>
+            <div class="podium-team">Ducati Lenovo Team</div>
+            <div class="podium-gap">+0.590s</div>
+            <div class="driver-chips">
+              <span class="d-chip">Francesco Bagnaia</span>
+            </div>
+          </div>
+          <div class="podium-step step-3"></div>
+        </div>
+      </div>
+
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Pos</th><th>Rider</th><th>Team</th><th>Bike</th><th>Gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pos-badge">1</span></td><td>Marc Marquez #93</td><td>Ducati Lenovo Team</td><td>Ducati GP26</td><td>Winner</td></tr>
+          <tr><td><span class="pos-badge">2</span></td><td>Ai Ogura #79</td><td>Trackhouse Racing</td><td>Aprilia RS-GP</td><td>+0.421s</td></tr>
+          <tr><td><span class="pos-badge">3</span></td><td>Francesco Bagnaia #1</td><td>Ducati Lenovo Team</td><td>Ducati GP26</td><td>+0.590s</td></tr>
+          <tr><td><span class="pos-badge">4</span></td><td>Fabio Di Giannantonio #49</td><td>Pertamina Enduro VR46</td><td>Ducati GP25</td><td>+0.759s</td></tr>
+          <tr><td><span class="pos-badge">5</span></td><td>Joan Mir #36</td><td>LCR Honda</td><td>Honda RC213V</td><td>—</td></tr>
+          <tr><td><span class="pos-badge">6</span></td><td>Fermin Aldeguer #54</td><td>Gresini Racing</td><td>Ducati GP25</td><td>—</td></tr>
+          <tr><td><span class="pos-badge">7</span></td><td>Raul Fernandez #25</td><td>Trackhouse Racing</td><td>Aprilia RS-GP</td><td>—</td></tr>
+          <tr><td><span class="pos-badge">8</span></td><td>Luca Marini #10</td><td>Honda Team</td><td>Honda RC213V</td><td>—</td></tr>
+          <tr><td><span class="pos-badge">9</span></td><td>Jorge Martin #89</td><td>Aprilia Racing</td><td>Aprilia RS-GP</td><td>—</td></tr>
+          <tr><td><span class="pos-badge">10</span></td><td>Enea Bastianini #23</td><td>Red Bull KTM Tech3</td><td>KTM RC16</td><td>—</td></tr>
+          <tr><td><span class="pos-badge">DNF</span></td><td>Pedro Acosta #31</td><td>Red Bull KTM Factory</td><td>KTM RC16</td><td>Technical (Lap 21)</td></tr>
+          <tr><td><span class="pos-badge">DNF</span></td><td>Fabio Quartararo #20</td><td>Monster Energy Yamaha</td><td>Yamaha YZR-M1 V4</td><td>Crashed (Lap 1)</td></tr>
+          <tr><td><span class="pos-badge">DNS</span></td><td>Marco Bezzecchi #72</td><td>Aprilia Racing</td><td>Aprilia RS-GP</td><td>Suspended (marshal incident)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="telemetry-panel">
+        <div class="telemetry-label">Championship standings · after round 9</div>
+        <div class="telem-grid">
+          <div class="telem-item highlight">
+            <div class="telem-val">180</div>
+            <div class="telem-key">Bezzecchi (Aprilia) · 1st</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">172</div>
+            <div class="telem-key">Martin (Aprilia) · 2nd</div>
+          </div>
+          <div class="telem-item">
+            <div class="telem-val">157</div>
+            <div class="telem-key">Di Giannantonio · 3rd</div>
+          </div>
+          <div class="telem-item highlight">
+            <div class="telem-val red">140</div>
+            <div class="telem-key">Marquez (Ducati) · 4th — gap: 40pts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIDERS -->
+    <div id="riders" class="tab-panel">
+      <p style="font-size:.9rem;color:var(--silver);margin-bottom:1.5rem;line-height:1.7;">The three riders who shared the Brno podium across the 2026 Czech Grand Prix — Round 9 of the FIM MotoGP World Championship, 21 June 2026.</p>
+
+      <div style="font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--red);margin-bottom:.75rem;">Race winner · Ducati Lenovo Team</div>
+      <div class="rider-grid" style="margin-bottom:1.5rem;">
+        <div class="rider-card">
+          <div class="rider-num">#93</div>
+          <div class="rider-role">Reigning world champion</div>
+          <div class="rider-name">Marc Marquez</div>
+          <div class="rider-nat">Spain</div>
+          <span class="rider-badge badge-gold">5th Brno win · 101st premier class victory</span>
+        </div>
+        <div class="rider-card">
+          <div class="rider-num">GP26</div>
+          <div class="rider-role">Machine · Ducati Lenovo</div>
+          <div class="rider-name">Desmosedici GP26</div>
+          <div class="rider-nat">1000cc · Michelin medium/medium</div>
+          <span class="rider-badge badge-green">2nd consecutive win</span>
+        </div>
+        <div class="rider-card">
+          <div class="rider-num">P5</div>
+          <div class="rider-role">Grid position</div>
+          <div class="rider-name">Row 2 start</div>
+          <div class="rider-nat">Q2 run 1 cancelled — track limits</div>
+          <span class="rider-badge badge-blue">Lap 16 lead taken</span>
+        </div>
+      </div>
+
+      <div style="font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">P2 · Trackhouse Aprilia RS-GP</div>
+      <div class="rider-grid" style="margin-bottom:1.5rem;">
+        <div class="rider-card">
+          <div class="rider-num">#79</div>
+          <div class="rider-role">P2 finisher</div>
+          <div class="rider-name">Ai Ogura</div>
+          <div class="rider-nat">Japan</div>
+          <span class="rider-badge badge-blue">Best 2026 result · closed 0.27s in final 2 laps</span>
+        </div>
+      </div>
+
+      <div style="font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">P3 · Ducati Lenovo Team</div>
+      <div class="rider-grid" style="margin-bottom:1.5rem;">
+        <div class="rider-card">
+          <div class="rider-num">#1</div>
+          <div class="rider-role">P3 finisher</div>
+          <div class="rider-name">Francesco Bagnaia</div>
+          <div class="rider-nat">Italy</div>
+          <span class="rider-badge badge-green">4th consecutive podium · 63rd Ducati podium</span>
+        </div>
+      </div>
+
+      <div class="pull-quote" style="margin-top:2rem;">
+        <p>"I believe that the bike had something more, but I wasn't able to make the most of it, especially in the change of direction between turns 6 and 7."</p>
+        <cite>— Marc Marquez · post-race technical debrief</cite>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- SIDEBAR -->
+  <aside class="article-sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-title">Race facts</div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Round</span><span class="sidebar-stat-val">9 of 22</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Circuit</span><span class="sidebar-stat-val">CREDITAS Autodrom Brno</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Date</span><span class="sidebar-stat-val">21 June 2026</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Laps</span><span class="sidebar-stat-val">21</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Circuit length</span><span class="sidebar-stat-val">5.403 km</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Corners</span><span class="sidebar-stat-val">14 (6L / 8R)</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Track temp</span><span class="sidebar-stat-val">~60°C</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Winning margin</span><span class="sidebar-stat-val">0.421s</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Lap record</span><span class="sidebar-stat-val">1'53.122 (DiGia)</span></div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">Winner</div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Rider</span><span class="sidebar-stat-val">Marc Marquez</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Team</span><span class="sidebar-stat-val">Ducati Lenovo</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Bike</span><span class="sidebar-stat-val">GP26</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Grid</span><span class="sidebar-stat-val">P5</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Lead taken</span><span class="sidebar-stat-val">Lap 16 / T4</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Brno wins</span><span class="sidebar-stat-val">5th all-time</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Premier wins</span><span class="sidebar-stat-val">101st</span></div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-title">Tyre data</div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Front compound</span><span class="sidebar-stat-val">Medium (all)</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Rear compound</span><span class="sidebar-stat-val">Medium (all)</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Exception</span><span class="sidebar-stat-val">Mir — soft rear</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Degradation phase</span><span class="sidebar-stat-val">Lap 10–14</span></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-lbl">Key T4 lap</span><span class="sidebar-stat-val">Lap 16</span></div>
+    </div>
+
+    <a href="index.html" class="back-link">← Back to portfolio</a>
+  </aside>
+</div>
+
+<!-- FOOTER -->
+<div class="article-footer">
+  Written by <span>Santhosh Reddy Pilli</span> · Motorsport Engineering Student · RGUKT Nuzvid · June 2026
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
